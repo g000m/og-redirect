@@ -1,0 +1,13 @@
+{
+    "name": "g000m/og-redirect",
+    "type": "wordpress-plugin",
+    "license": "GPLv2",
+    "authors": [
+        {
+            "name": "Gabe Herbert",
+            "email": "gh@gabeherbert.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
