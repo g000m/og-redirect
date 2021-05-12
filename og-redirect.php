@@ -25,16 +25,16 @@ class OG_Redirect
 {
     public $post = null;
 
+    protected $requested_old_url = null;
+
     function __construct()
     {
-	    global $post;
-
-        add_filter('old_slug_redirect_post_id', array( $this, 'set_og_url' ));
+        add_filter('old_slug_redirect_post_id', array( $this, 'capture_post_from_id' ));
         add_filter('old_slug_redirect_url', array( $this, 'reset_404' ));
         add_action('wp_head', array( $this, 'og_meta' ));
     }
 
-    public function set_og_url($id)
+    public function capture_post_from_id($id)
     {
         if ($id > 0) { // if 0, we're on a 404
             $this->post = get_post($id);
@@ -43,16 +43,16 @@ class OG_Redirect
         return $id;
     }
 
-	/**
-	 * Fires if an old post redirect URL was found
-	 *
-	 * returning null exits the calling function before wp_redirect() is called, allowing the page to respond on the
-	 * original URL.
-	 *
-	 * @param $link
-	 *
-	 * @return mixed|null
-	 */
+    /**
+     * Fires if an old post redirect URL was found
+     *
+     * returning null exits the calling function before wp_redirect() is called, allowing the page to respond on the
+     * original URL.
+     *
+     * @param $link
+     *
+     * @return mixed|null
+     */
     public function reset_404($link)
     {
         $test = true;
@@ -63,19 +63,23 @@ class OG_Redirect
             $wp_query->is_404    = false;
             status_header(200);
 
+            // the request matched a valid old slug, so grab the URL
+            $this->requested_old_url = home_url($_SERVER['REQUEST_URI']);
+
             return null;
+        } else {
+            return $link;
         }
 
-        return $link;
     }
 
-	/**
-	 * writesog:url and og:type to <head>
-	 */
+    /**
+     * writesog:url and og:type to <head>
+     */
     public function og_meta(): void
     {
-    	global $post; // will be null if 404
-	    $this->post = (isset($post)) ? $post : $this->post;
+        global $post; // will be null if 404
+        $this->post = (isset($post)) ? $post : $this->post;
 
         if (is_null($this->post)) {
             return;
@@ -84,6 +88,8 @@ class OG_Redirect
         $post_canonical_url_meta = get_post_canonical_url_meta($this->post->ID);
         if (! empty($post_canonical_url_meta)) {
             $url = $post_canonical_url_meta;
+        } elseif (isset($this->requested_old_url)) {
+            $url = $this->requested_old_url;
         } else {
             $url = get_permalink($this->post);
         }
@@ -121,6 +127,7 @@ function get_post_canonical_url_meta(int $post_id) : string
  */
 function _get_post_canonical_url_meta($permalink, $post, $leavename)
 {
+    // @TODO this match is present during get_the_excerpt, probably because it calls the_content() and filters it.
     if (has_caller_method('wpfc_show_facebook_comments')) {
         $url = get_post_canonical_url_meta($post->ID);
         if (! empty($url)) {
