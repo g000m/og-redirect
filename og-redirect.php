@@ -23,8 +23,6 @@
  */
 class OG_Redirect
 {
-    public $og_url = null;
-
     public $post = null;
 
     function __construct()
@@ -38,19 +36,25 @@ class OG_Redirect
 
     public function set_og_url($id)
     {
-        if ($id <= 0) {
+        if ($id <= 0) { // if 0, we're on a 404
             return $id;
         }
 
         $this->post = get_post($id);
-//        $this->og_url = ( ! empty(get_post_canonical_url_meta($id)) ) ? get_post_canonical_url_meta($id) : $this->og_url;
 
         return $id;
     }
 
+	/**
+	 * Fires if an old post redirect URL was found
+	 *
+	 * @param $link
+	 *
+	 * @return mixed|null
+	 */
     public function reset_404($link)
     {
-        $test = false;
+        $test = true;
         if (is_404() && (is_FB() || $test)) {
             global $wp_query;
 
@@ -58,28 +62,29 @@ class OG_Redirect
             $wp_query->is_404    = false;
             status_header(200);
 
-//          $this->og_url = $link;
-
             return null;
         }
 
         return $link;
     }
 
-    public function og_meta()
+	/**
+	 * writesog:url and og:type to <head>
+	 */
+    public function og_meta(): void
     {
-    	global $post;
-        if (is_null($post)) {
+    	global $post; // will be null if 404
+	    $this->post = (isset($post)) ? $post : $this->post;
+
+        if (is_null($this->post)) {
             return;
         }
 
-        $post_canonical_url_meta = get_post_canonical_url_meta($post->ID);
-        if (isset($this->og_url)) {
-            $url = $this->og_url;
-        } elseif (! empty($post_canonical_url_meta)) {
+        $post_canonical_url_meta = get_post_canonical_url_meta($this->post->ID);
+        if (! empty($post_canonical_url_meta)) {
             $url = $post_canonical_url_meta;
         } else {
-            $url = get_permalink($post);
+            $url = get_permalink($this->post);
         }
         echo "\n<meta property=\"og:url\" content=\"$url\" />";
         echo "\n<meta property=\"og:type\" content=\"article\" />\n";
