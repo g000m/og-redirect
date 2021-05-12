@@ -19,22 +19,23 @@ add_filter('old_slug_redirect_post_id', function ($id) {
     return $id;
 });
 
-add_filter('old_slug_redirect_url', function ($link) {
-    $test = true;
-    if (is_404() && is_FB() || $test) {
-        global $og_url, $wp_query;
+function reset_404($link) {
+	$test = false;
+	if (is_404() && is_FB() || $test) {
+		global $og_url, $wp_query;
 
-        $wp_query->is_single = true;
-        $wp_query->is_404    = false;
-        status_header(200);
+		$wp_query->is_single = true;
+		$wp_query->is_404    = false;
+		status_header(200);
 
 //        $og_url = $link;
 
-        return null;
-    }
+		return null;
+	}
 
-    return $link;
-});
+	return $link;
+}
+add_filter('old_slug_redirect_url', 'reset_404');
 
 
 
