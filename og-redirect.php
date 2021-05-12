@@ -36,17 +36,18 @@ class OG_Redirect
 
     public function set_og_url($id)
     {
-        if ($id <= 0) { // if 0, we're on a 404
-            return $id;
+        if ($id > 0) { // if 0, we're on a 404
+            $this->post = get_post($id);
         }
-
-        $this->post = get_post($id);
 
         return $id;
     }
 
 	/**
 	 * Fires if an old post redirect URL was found
+	 *
+	 * returning null exits the calling function before wp_redirect() is called, allowing the page to respond on the
+	 * original URL.
 	 *
 	 * @param $link
 	 *
