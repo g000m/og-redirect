@@ -9,32 +9,95 @@
  * Domain Path:     /languages
  * Version:         0.1.0
  *
- * @package         Og_Redirect
+ * @package         OG_Redirect
  */
 
-add_filter('old_slug_redirect_post_id', function ($id) {
-    global $og_url;
-    $og_url = get_post_canonical_url_meta($id);
+/**
+ * Class OG_Redirect
+ *
+ * This handles 3 cases:
+ *
+ * - invalid URL/404
+ * - valid original URL
+ * - valid redirected URL
+ */
+class OG_Redirect
+{
+    public $post = null;
 
-    return $id;
-});
+    protected $requested_old_url = null;
 
-add_filter('old_slug_redirect_url', function ($link) {
-    $test = true;
-    if (is_404() && is_FB() || $test) {
-        global $og_url, $wp_query;
-
-        $wp_query->is_single = true;
-        $wp_query->is_404    = false;
-        status_header(200);
-
-//        $og_url = $link;
-
-        return null;
+    function __construct()
+    {
+        add_filter('old_slug_redirect_post_id', array( $this, 'capture_post_from_id' ));
+        add_filter('old_slug_redirect_url', array( $this, 'reset_404' ));
+        add_action('wp_head', array( $this, 'og_meta' ));
     }
 
-    return $link;
-});
+    public function capture_post_from_id($id)
+    {
+        if ($id > 0) { // if 0, we're on a 404
+            $this->post = get_post($id);
+        }
+
+        return $id;
+    }
+
+    /**
+     * Fires if an old post redirect URL was found
+     *
+     * returning null exits the calling function before wp_redirect() is called, allowing the page to respond on the
+     * original URL.
+     *
+     * @param $link
+     *
+     * @return mixed|null
+     */
+    public function reset_404($link)
+    {
+        $test = false;
+        if (is_404() && (is_FB() || $test)) {
+            global $wp_query;
+
+            $wp_query->is_single = true;
+            $wp_query->is_404    = false;
+            status_header(200);
+
+            // the request matched a valid old slug, so grab the URL
+            $this->requested_old_url = home_url($_SERVER['REQUEST_URI']);
+
+            return null;
+        } else {
+            return $link;
+        }
+
+    }
+
+    /**
+     * writesog:url and og:type to <head>
+     */
+    public function og_meta(): void
+    {
+        global $post; // will be null if 404
+        $this->post = (isset($post)) ? $post : $this->post;
+
+        if (is_null($this->post)) {
+            return;
+        }
+
+        $post_canonical_url_meta = get_post_canonical_url_meta($this->post->ID);
+        if (! empty($post_canonical_url_meta)) {
+            $url = $post_canonical_url_meta;
+        } elseif (isset($this->requested_old_url)) {
+            $url = $this->requested_old_url;
+        } else {
+            $url = get_permalink($this->post);
+        }
+        echo "\n<meta property=\"og:url\" content=\"$url\" />";
+        echo "\n<meta property=\"og:type\" content=\"article\" />\n";
+    }
+}
+
 
 
 
@@ -51,19 +114,6 @@ function get_post_canonical_url_meta(int $post_id) : string
     return reset($values);
 }
 
-function og_meta()
-{
-    global $og_url, $post;
-    if (empty($og_url)) {
-        $url = get_post_canonical_url_meta($post->ID);
-    } else {
-        $url = $og_url;
-    }
-    echo "\n<meta property=\"og:url\" content=\"$url\" />";
-    echo "\n<meta property=\"og:type\" content=\"article\" />\n";
-}
-
-add_action('wp_head', 'og_meta');
 
 
 /**
@@ -77,8 +127,12 @@ add_action('wp_head', 'og_meta');
  */
 function _get_post_canonical_url_meta($permalink, $post, $leavename)
 {
+    // @TODO this match is present during get_the_excerpt, probably because it calls the_content() and filters it.
     if (has_caller_method('wpfc_show_facebook_comments')) {
-        return get_post_canonical_url_meta($post->ID);
+        $url = get_post_canonical_url_meta($post->ID);
+        if (! empty($url)) {
+            return $url;
+        }
     }
 
     return $permalink;
@@ -103,15 +157,17 @@ function has_caller_method(string $method)
 
 function handle_404($preempt, $wp_query)
 {
-	if (true || $_SERVER['HTTP_USER_AGENT'] === "FacebookExternalHit") {
-		global $wp_query;
+    if (true || $_SERVER['HTTP_USER_AGENT'] === "FacebookExternalHit") {
+        global $wp_query;
 
 //      $wp_query->set_404();
 
-		return true;
-	}
+        return true;
+    }
 
-	return $preempt;
+    return $preempt;
 }
 
 //add_filter( 'pre_handle_404', 'handle_404', 10, 2 );
+
+new OG_Redirect();
