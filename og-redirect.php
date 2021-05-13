@@ -34,6 +34,13 @@ class OG_Redirect
         add_action('wp_head', array( $this, 'og_meta' ));
     }
 
+    /**
+     * After original post has been resolved, use this hook to capture a WP_Post object via the $id
+     *
+     * @param $id
+     *
+     * @return mixed
+     */
     public function capture_post_from_id($id)
     {
         if ($id > 0) { // if 0, we're on a 404
@@ -70,7 +77,6 @@ class OG_Redirect
         } else {
             return $link;
         }
-
     }
 
     /**
