@@ -55,7 +55,7 @@ class OG_Redirect
      */
     public function reset_404($link)
     {
-        $test = true;
+        $test = false;
         if (is_404() && (is_FB() || $test)) {
             global $wp_query;
 
