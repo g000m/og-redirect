@@ -30,7 +30,7 @@ class OG_Redirect
     function __construct()
     {
         add_filter('old_slug_redirect_post_id', array( $this, 'capture_post_from_id' ));
-        add_filter('old_slug_redirect_url', array( $this, 'reset_404' ));
+        add_filter('old_slug_redirect_url', array( $this, 'reset_404' )); // @TODO deactivate this if viewing a non-canonical URL (if $url !== get_post_canonical_url_meta() )
         add_action('wp_head', array( $this, 'og_meta' ));
     }
 
@@ -53,8 +53,12 @@ class OG_Redirect
     /**
      * Fires if an old post redirect URL was found
      *
+     * returns empty page at old URL when FB scraper visits
+     *
      * returning null exits the calling function before wp_redirect() is called, allowing the page to respond on the
      * original URL.
+     *
+     * @TODO exit when original slug/URL is restored
      *
      * @param $link
      *
@@ -62,7 +66,7 @@ class OG_Redirect
      */
     public function reset_404($link)
     {
-        $test = false;
+        $test = strpos(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), 'fbext') >= 0; // @TODO delete this before release
         if (is_404() && (is_FB() || $test)) {
             global $wp_query;
 
@@ -123,6 +127,7 @@ function get_post_canonical_url_meta(int $post_id) : string
 
 
 /**
+ * Changes the URL written to the FB comment snippet
  * Checks that filter 'post_link' was called within wpfc_show_facebook_comments()
  *
  * @param $permalink
