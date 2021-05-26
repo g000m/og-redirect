@@ -59,7 +59,9 @@ class OG_Redirect
         $buffer = ob_get_clean();
 
         $dom = new DOMDocument();
-        $dom->loadHTML($buffer);
+        $dom->preserveWhiteSpace = true;
+        $dom->formatOutput = true;
+        $dom->loadHTML("$buffer", LIBXML_HTML_NODEFDTD);
         foreach ($dom->getElementsByTagName('meta') as $meta) {
             if ($meta->hasAttribute('property') && $meta->getAttribute('property') === "og:url") {
                 if ($meta->getAttribute('content') !== $this->meta_url) {
@@ -68,7 +70,18 @@ class OG_Redirect
                 break;
             }
         }
-        echo $dom->saveHTML();
+        $body = $dom->getElementsByTagName('head')->item(0);
+//      echo $dom->saveHTML($body); // would exit here if I didn't need to unroll the head element
+//      echo $dom->saveHTML( );
+
+        $result = '';
+
+        // how to return childnodes as html instead of iterating this?
+        foreach ($body->childNodes as $childNode) {
+            $result .= $dom->saveHTML($childNode);
+        }
+
+        echo $result;
     }
 
     /**
@@ -103,7 +116,7 @@ class OG_Redirect
      */
     public function reset_404($link)
     {
-        $test = strpos(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), 'fbext') >= 0; // @TODO delete this before release
+        $test = is_int(strpos(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), 'fbext')); // @TODO delete this before release
         if (is_404() && (is_FB() || $test)) {
             global $wp_query;
 
