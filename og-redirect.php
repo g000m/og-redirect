@@ -31,6 +31,9 @@ class OG_Redirect
 
     function __construct()
     {
+        if (is_admin()) {
+            return;
+        }
         add_filter('old_slug_redirect_post_id', array( $this, 'capture_post_from_id' ));
         add_filter('old_slug_redirect_url', array( $this, 'reset_404' )); // @TODO deactivate this if viewing a non-canonical URL (if $url !== get_post_canonical_url_meta() )
         add_action('wp_head', array( $this, 'og_meta' ));
@@ -234,4 +237,15 @@ function handle_404($preempt, $wp_query)
 
 //add_filter( 'pre_handle_404', 'handle_404', 10, 2 );
 
+
+function test_activated()
+{
+    $got_posts = get_posts(array('numberposts'=>-1));
+    foreach ($got_posts as $post) {
+	    $post_permalink = str_replace( 'https://testdomain.local', 'https://www.testdomain.com', get_permalink( $post ) );
+	    $updated    = add_post_meta($post->ID, 'og_canonical_url', $post_permalink, true);
+    }
+}
+register_activation_hook(__FILE__, 'test_activated');
+//test_activated();
 new OG_Redirect();
