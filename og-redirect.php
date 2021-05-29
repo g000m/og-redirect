@@ -33,8 +33,7 @@ class OG_Redirect
     protected $requested_old_url = null; // URL of a post's old slug
     protected $requested_url = null;    // URL requested by browser
 
-    protected $meta_url = null; // URL set in meta
-    protected $url = null; // the URL chosen to bewritten to page;
+    protected $meta_url = null; // URL to set in meta og:url
 
     function __construct()
     {
@@ -58,7 +57,7 @@ class OG_Redirect
     public function set_head_og_meta() : void
     {
         add_action('wp_head', function () {
-            echo "\n<meta property=\"og:url\" content=\"$this->url\" />";
+            echo "\n<meta property=\"og:url\" content=\"$this->meta_url\" />";
             echo "\n<meta property=\"og:type\" content=\"article\" />\n";
         }, 1);
     }
@@ -111,23 +110,17 @@ class OG_Redirect
 
         // just because there's a cacnonical URL set, doesn't mean it neesd to be used.
         $post_canonical_url_meta = get_post_canonical_url_meta($this->post->ID);
-        if (isset($this->requested_old_url)) { // if is404() & is_FB()
-            $url = $this->requested_old_url;
-            $this->replace_head_og_url();
-        } elseif (! empty($post_canonical_url_meta) && $post_canonical_url_meta !== $this->requested_url) {
-             $url = $post_canonical_url_meta;
-             add_filter('post_link', '_get_post_canonical_url_meta', 10, 3);
+        if (isset($this->requested_old_url)) { // if is404() & is_FB(): showing canonical page w/ no content
+            $this->meta_url = $post_canonical_url_meta;
             $this->set_head_og_meta();
+        } elseif (! empty($post_canonical_url_meta) && $post_canonical_url_meta !== $this->requested_url) {
+             $this->meta_url = $post_canonical_url_meta;
+             add_filter('post_link', '_get_post_canonical_url_meta', 10, 3);
+            $this->replace_head_og_url();
         } else {
-//            $url = get_permalink($this->post); // can I just leave this unset?
-            $this->url = null; // can I just leave this unset?
-            return;
+            echo "<h1>THIS SHOULD NOT HAPPEN</h1>"; // @TODO throw an actual warning or log
         }
-        $this->meta_url = $url;
 
-        // @TODO delete this, or create another method that sets these tags when not found elsewhere
-//        echo "\n<meta property=\"og:url\" content=\"$url\" />";
-//        echo "\n<meta property=\"og:type\" content=\"article\" />\n";
     }
 
 
