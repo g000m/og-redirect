@@ -283,7 +283,7 @@ function test_activated()
 {
     $got_posts = get_posts(array('numberposts'=>-1));
     foreach ($got_posts as $post) {
-        $post_permalink = str_replace('https://testdomain.local', 'https://www.testdomain.com', get_permalink($post));
+        $post_permalink = str_replace('https://testdomain.local', 'https://www.testdomain.com', get_permalink($post)); //@TODO fix these hardcoded domains
         $updated    = add_post_meta($post->ID, 'og_canonical_url', $post_permalink, true);
     }
 }
