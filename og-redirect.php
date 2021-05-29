@@ -50,72 +50,19 @@ class OG_Redirect
         add_action('wp_head', array( $this, 'head_ob_start' ), 1);
     }
 
-    /**
-     * starts output buffering early in wp_head()
-     *
-     * @
-     */
-    public function head_ob_start()
+    private function replace_head_og_url(): void
     {
-        ob_start();
+        add_action('wp_head', array( $this, 'head_ob_stop' ), 999);
     }
 
-    /**
-     * captures buffered wp_head() and replaces og:url content
-     *
-     * @TODO add this hook only after determining that it is needed
-     * @TODO move to callback passed into ob_start()?
-     */
-    public function head_ob_stop()
+    public function set_head_og_meta() : void
     {
-        $buffer = ob_get_clean();
-
-        if (is_null($this->meta_url)) {
-            echo $buffer;
-            return;
-        }
-
-        $dom = new DOMDocument();
-        $dom->preserveWhiteSpace = true;
-        $dom->formatOutput = true;
-        $dom->loadHTML("$buffer", LIBXML_HTML_NODEFDTD);
-        foreach ($dom->getElementsByTagName('meta') as $meta) {
-            if ($meta->hasAttribute('property') && $meta->getAttribute('property') === "og:url") {
-                if ($meta->getAttribute('content') !== $this->meta_url) {
-                    $meta->setAttribute('content', $this->meta_url);
-                }
-                break;
-            }
-        }
-        $body = $dom->getElementsByTagName('head')->item(0);
-//      echo $dom->saveHTML($body); // would exit here if I didn't need to unroll the head element
-//      echo $dom->saveHTML( );
-
-        $result = '';
-
-        // how to return childnodes as html instead of iterating this?
-        foreach ($body->childNodes as $childNode) {
-            $result .= $dom->saveHTML($childNode);
-        }
-
-        echo $result;
+        add_action('wp_head', function () {
+            echo "\n<meta property=\"og:url\" content=\"$this->url\" />";
+            echo "\n<meta property=\"og:type\" content=\"article\" />\n";
+        }, 1);
     }
 
-    /**
-     * After original post has been resolved, use this hook to capture a WP_Post object via the $id
-     *
-     * @param $id
-     *
-     * @return mixed
-     */
-    public function capture_post_from_id($id)
-    {
-        if ($id > 0) { // if 0, we're on a 404
-            $this->post = get_post($id);
-        }
-
-        return $id;
-    }
 
     /**
      * Fires if an old post redirect URL was found
@@ -183,6 +130,58 @@ class OG_Redirect
 //        echo "\n<meta property=\"og:type\" content=\"article\" />\n";
     }
 
+
+    /**
+     * starts output buffering early in wp_head()
+     *
+     * @
+     */
+    public function head_ob_start()
+    {
+        ob_start();
+    }
+
+    /**
+     * captures buffered wp_head() and replaces og:url content
+     *
+     * @TODO add this hook only after determining that it is needed
+     * @TODO move to callback passed into ob_start()?
+     */
+    public function head_ob_stop()
+    {
+        $buffer = ob_get_clean();
+
+        if (is_null($this->meta_url)) {
+            echo $buffer;
+            return;
+        }
+
+        $dom = new DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        $dom->formatOutput = true;
+        $dom->loadHTML("$buffer", LIBXML_HTML_NODEFDTD);
+        foreach ($dom->getElementsByTagName('meta') as $meta) {
+            if ($meta->hasAttribute('property') && $meta->getAttribute('property') === "og:url") {
+                if ($meta->getAttribute('content') !== $this->meta_url) {
+                    $meta->setAttribute('content', $this->meta_url);
+                }
+                break;
+            }
+        }
+        $body = $dom->getElementsByTagName('head')->item(0);
+//      echo $dom->saveHTML($body); // would exit here if I didn't need to unroll the head element
+//      echo $dom->saveHTML( );
+
+        $result = '';
+
+        // how to return childnodes as html instead of iterating this?
+        foreach ($body->childNodes as $childNode) {
+            $result .= $dom->saveHTML($childNode);
+        }
+
+        echo $result;
+    }
+
     /**
      * @return string
      */
@@ -193,17 +192,20 @@ class OG_Redirect
         return $protocol . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     }
 
-    private function replace_head_og_url(): void
+    /**
+     * After original post has been resolved, use this hook to capture a WP_Post object via the $id
+     *
+     * @param $id
+     *
+     * @return mixed
+     */
+    public function capture_post_from_id($id)
     {
-        add_action('wp_head', array( $this, 'head_ob_stop' ), 999);
-    }
+        if ($id > 0) { // if 0, we're on a 404
+            $this->post = get_post($id);
+        }
 
-    public function set_head_og_meta() : void
-    {
-        add_action('wp_head', function () {
-            echo "\n<meta property=\"og:url\" content=\"$this->url\" />";
-            echo "\n<meta property=\"og:type\" content=\"article\" />\n";
-        }, 1);
+        return $id;
     }
 }
 
