@@ -21,24 +21,33 @@
  * - valid original URL
  * - valid redirected URL
  */
+
+if (! defined('ABSPATH')) {
+    return;
+}
+
 class OG_Redirect
 {
     public $post = null;
 
-    protected $requested_old_url = null;
+    protected $requested_old_url = null; // URL of a post's old slug
+    protected $requested_url = null;    // URL requested by browser
 
-    protected $meta_url = null;
+    protected $meta_url = null; // URL set in meta
+    protected $url = null; // the URL chosen to bewritten to page;
 
     function __construct()
     {
         if (is_admin()) {
             return;
         }
+
+        $this->requested_url = $this->get_server_requested_url();
+
         add_filter('old_slug_redirect_post_id', array( $this, 'capture_post_from_id' ));
         add_filter('old_slug_redirect_url', array( $this, 'reset_404' )); // @TODO deactivate this if viewing a non-canonical URL (if $url !== get_post_canonical_url_meta() )
-        add_action('wp_head', array( $this, 'choose_og_url' ));
-        add_action('wp_head', array( $this, 'head_ob_start'), 1);
-        add_action('wp_head', array( $this, 'head_ob_stop'), 999);
+        add_action('wp_head', array( $this, 'choose_og_url' ), 0);
+        add_action('wp_head', array( $this, 'head_ob_start' ), 1);
     }
 
     /**
@@ -60,6 +69,11 @@ class OG_Redirect
     public function head_ob_stop()
     {
         $buffer = ob_get_clean();
+
+        if (is_null($this->meta_url)) {
+            echo $buffer;
+            return;
+        }
 
         $dom = new DOMDocument();
         $dom->preserveWhiteSpace = true;
@@ -149,19 +163,39 @@ class OG_Redirect
             return;
         }
 
+        // just because there's a cacnonical URL set, doesn't mean it neesd to be used.
         $post_canonical_url_meta = get_post_canonical_url_meta($this->post->ID);
-        if (! empty($post_canonical_url_meta)) {
+        if (! empty($post_canonical_url_meta) && $post_canonical_url_meta !== $this->requested_url) {
             $url = $post_canonical_url_meta;
+            add_filter('post_link', '_get_post_canonical_url_meta', 10, 3);
+            $this->replace_head_og_url();
         } elseif (isset($this->requested_old_url)) {
             $url = $this->requested_old_url;
+            $this->replace_head_og_url();
         } else {
-            $url = get_permalink($this->post);
+//            $url = get_permalink($this->post); // can I just leave this unset?
+            $url = null; // can I just leave this unset?
         }
         $this->meta_url = $url;
 
         // @TODO delete this, or create another method that sets these tags when not found elsewhere
 //        echo "\n<meta property=\"og:url\" content=\"$url\" />";
 //        echo "\n<meta property=\"og:type\" content=\"article\" />\n";
+    }
+
+    /**
+     * @return string
+     */
+    protected function get_server_requested_url(): string
+    {
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+
+        return $protocol . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+    }
+
+    private function replace_head_og_url(): void
+    {
+        add_action('wp_head', array( $this, 'head_ob_stop' ), 999);
     }
 }
 
@@ -206,7 +240,6 @@ function _get_post_canonical_url_meta($permalink, $post, $leavename)
     return $permalink;
 }
 
-add_filter('post_link', '_get_post_canonical_url_meta', 10, 3);
 
 function has_caller_method(string $method)
 {
@@ -243,8 +276,8 @@ function test_activated()
 {
     $got_posts = get_posts(array('numberposts'=>-1));
     foreach ($got_posts as $post) {
-	    $post_permalink = str_replace( 'https://testdomain.local', 'https://www.testdomain.com', get_permalink( $post ) );
-	    $updated    = add_post_meta($post->ID, 'og_canonical_url', $post_permalink, true);
+        $post_permalink = str_replace('https://testdomain.local', 'https://www.testdomain.com', get_permalink($post));
+        $updated    = add_post_meta($post->ID, 'og_canonical_url', $post_permalink, true);
     }
 }
 register_activation_hook(__FILE__, 'test_activated');
