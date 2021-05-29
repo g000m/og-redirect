@@ -133,8 +133,7 @@ class OG_Redirect
      */
     public function reset_404($link)
     {
-        $test = is_int(strpos(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), 'fbext')); // @TODO delete this before release
-        if (is_404() && (is_FB() || $test)) {
+        if (is_404() && is_FB()) {
             global $wp_query;
 
             $wp_query->is_single = true;
@@ -209,11 +208,15 @@ class OG_Redirect
 }
 
 
-
-
+/**
+ * detects facebook crawler useragent
+ * @return bool
+ */
 function is_FB(): bool
 {
-    return strpos($_SERVER["HTTP_USER_AGENT"], "facebookexternalhit/") !== false;
+    $test = is_int(strpos(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), 'fbext')); // @TODO delete this before release
+
+    return $test || strpos($_SERVER["HTTP_USER_AGENT"], "facebookexternalhit/") !== false;
 }
 
 function get_post_canonical_url_meta(int $post_id) : string
