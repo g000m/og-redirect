@@ -165,16 +165,17 @@ class OG_Redirect
 
         // just because there's a cacnonical URL set, doesn't mean it neesd to be used.
         $post_canonical_url_meta = get_post_canonical_url_meta($this->post->ID);
-        if (! empty($post_canonical_url_meta) && $post_canonical_url_meta !== $this->requested_url) {
-            $url = $post_canonical_url_meta;
-            add_filter('post_link', '_get_post_canonical_url_meta', 10, 3);
-            $this->replace_head_og_url();
-        } elseif (isset($this->requested_old_url)) {
+        if (isset($this->requested_old_url)) { // if is404() & is_FB()
             $url = $this->requested_old_url;
             $this->replace_head_og_url();
+        } elseif (! empty($post_canonical_url_meta) && $post_canonical_url_meta !== $this->requested_url) {
+             $url = $post_canonical_url_meta;
+             add_filter('post_link', '_get_post_canonical_url_meta', 10, 3);
+            $this->set_head_og_meta();
         } else {
 //            $url = get_permalink($this->post); // can I just leave this unset?
-            $url = null; // can I just leave this unset?
+            $this->url = null; // can I just leave this unset?
+            return;
         }
         $this->meta_url = $url;
 
@@ -196,6 +197,14 @@ class OG_Redirect
     private function replace_head_og_url(): void
     {
         add_action('wp_head', array( $this, 'head_ob_stop' ), 999);
+    }
+
+    public function set_head_og_meta() : void
+    {
+        add_action('wp_head', function () {
+            echo "\n<meta property=\"og:url\" content=\"$this->url\" />";
+            echo "\n<meta property=\"og:type\" content=\"article\" />\n";
+        }, 1);
     }
 }
 
