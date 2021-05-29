@@ -115,7 +115,7 @@ class OG_Redirect
             $this->set_head_og_meta();
         } elseif (! empty($post_canonical_url_meta) && $post_canonical_url_meta !== $this->requested_url) {
              $this->meta_url = $post_canonical_url_meta;
-             add_filter('post_link', '_get_post_canonical_url_meta', 10, 3);
+             add_filter('post_link', '_get_post_canonical_url_meta', 10, 3); // replaces url in facebook snippet
             $this->replace_head_og_url();
         } else {
             echo "<h1>THIS SHOULD NOT HAPPEN</h1>"; // @TODO throw an actual warning or log
@@ -234,7 +234,7 @@ function get_post_canonical_url_meta(int $post_id) : string
  *
  * @return mixed|string
  */
-function _get_post_canonical_url_meta($permalink, $post, $leavename)
+function _get_post_canonical_url_meta($permalink, $post, $leavename) //@TODO make this function neame meaningful, eg replace_url_in_fb_snippet()
 {
     // @TODO this match is present during get_the_excerpt, probably because it calls the_content() and filters it.
     if (has_caller_method('wpfc_show_facebook_comments')) {
