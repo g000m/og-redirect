@@ -120,7 +120,6 @@ class OG_Redirect
         } else {
             echo "<h1>THIS SHOULD NOT HAPPEN</h1>"; // @TODO throw an actual warning or log
         }
-
     }
 
 
@@ -279,14 +278,24 @@ function handle_404($preempt, $wp_query)
 //add_filter( 'pre_handle_404', 'handle_404', 10, 2 );
 
 
-function test_activated()
+function activate()
 {
+    // checks for a hostname specfying an 'old domain', to be used when a domain has already been migrated
+    // and now owner says 'WhereTF are my comments"
+    if (!defined('OG_MIGRATE_URL')) {
+        return;
+    }
+
     $got_posts = get_posts(array('numberposts'=>-1));
     foreach ($got_posts as $post) {
-        $post_permalink = str_replace('https://testdomain.local', 'https://www.testdomain.com', get_permalink($post)); //@TODO fix these hardcoded domains
+        if (defined('OG_MIGRATE_URL') /* @TODO AND is a valid http(s)://domain */) {
+            $post_permalink = str_replace(get_home_url(), OG_MIGRATE_URL, get_permalink($post));
+        } else {
+            $post_permalink = get_permalink($post);
+        }
         $updated    = add_post_meta($post->ID, 'og_canonical_url', $post_permalink, true);
     }
 }
-register_activation_hook(__FILE__, 'test_activated');
-//test_activated();
+register_activation_hook(__FILE__, 'activate');
+
 new OG_Redirect();
