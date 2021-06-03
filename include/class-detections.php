@@ -4,8 +4,18 @@ namespace GHC;
 
 use WP_Post;
 
+/**
+ * Class Detections
+ *
+ * @package GHC
+ */
 class Detections {
 
+	/**
+	 * If fbexternalhit was detected in this request.
+	 *
+	 * @var bool
+	 */
 	public bool $detected_fb;
 
 	function __construct() {
@@ -37,8 +47,8 @@ class Detections {
 	 * @param WP_Post $post the newly created WP_Post object.
 	 */
 	public function detect_new_post( int $post_ID, WP_Post $post ): void {
-		$og_post = new OG_Post( $post );
-		$og_post->set_canonical_url( get_permalink( $post ) );
+		$this->og_post = new OG_Post( $post );
+		$this->og_post->set_canonical_url( get_permalink( $post ) );
 	}
 
 	/**
@@ -49,14 +59,25 @@ class Detections {
 	 * @param WP_Post $post_before the original WP_Post object.
 	 */
 	public function detect_slug_change( int $post_ID, WP_Post $post_after, WP_Post $post_before ): void {
-		$post_meta_canonical_url = get_post_meta( $post_ID, 'og_canonical_url' );
-
-		if ( ! $post_meta_canonical_url ) {
-			add_post_meta( $post_ID, 'og_canonical_url', get_permalink( $post_ID ) );
+		if ( ! isset( $this->post ) ) {
+			$this->post = $post_before;
+			// create new OG_Post?
 		}
+
+		// if slugs are not equal
+		if ( $post_before->post_name !== $post_after->post_name ) {
+			$this->og_post->set_canonical_url( get_permalink( $post_after ) );  // update og_canonical_url
+			change_og_url(get_permalink($post_before), get_permalink($post_after)); // update og_object
+		}
+
+
 	}
 
 
 }
 
+function change_og_url( string $post_before, string $post_after ) {
+	// 1. query og_object
+	$og_object = get_og_object($post_before);
 
+}

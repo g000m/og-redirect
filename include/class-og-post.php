@@ -12,6 +12,7 @@ class OG_Post {
 	}
 
 	public function set_canonical_url( string $url ) {
+		// check first for existing canonical_url
 		add_post_meta( $this->post->ID, $this->canonical_url_meta_key, $url );
 	}
 }
