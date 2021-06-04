@@ -20,19 +20,19 @@ class Detections {
 
 	function __construct() {
 		add_filter( 'save_post_post', array( $this, 'detect_new_post' ), 10, 2 );
-		add_action( 'post_updated', array( $this, 'detect_slug_change' ), 10, 3 );
+		add_action( 'post_updated', array( $this, 'detect_slug_has_changed' ), 10, 3 );
 
 	}
 
 	public function is_fb(): bool {
 		if ( is_null( $this->detected_fb ) ) {
-			$this->detect_fb();
+			$this->detect_fb_crawler();
 		}
 
 		return $this->detected_fb;
 	}
 
-	public function detect_fb(): bool {
+	public function detect_fb_crawler(): bool {
 		if ( isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
 			$this->detected_fb = strpos( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 'facebookexternalhit/' ) !== false;
 		}
@@ -58,7 +58,7 @@ class Detections {
 	 * @param WP_Post $post_after the mutated WP_Post object.
 	 * @param WP_Post $post_before the original WP_Post object.
 	 */
-	public function detect_slug_change( int $post_ID, WP_Post $post_after, WP_Post $post_before ): void {
+	public function detect_slug_has_changed( int $post_ID, WP_Post $post_after, WP_Post $post_before ): void {
 		if ( ! isset( $this->post ) ) {
 			$this->post = $post_before;
 			// create new OG_Post?
@@ -73,7 +73,48 @@ class Detections {
 
 	}
 
+	/**
+	 * A post's URL has changed, necessitating an update to its og_object.
+	 *
+	 * This would be tested after a URL or permalink change.
+	 *
+	 * @return bool
+	 */
+	public function og_object_needs_update(): bool {return false;}
 
+	/**
+	 * A wrapper for updates to an OG Object
+	 *
+	 * @param $value value needs to be determined @TODO which value?
+	 *
+	 * @return bool return value indicates success
+	 */
+	public function update_og_object( $value ): bool {return false;}
+
+	/**
+	 * This fires off the scraper on the new URL which should also scrape the old URL
+	 *
+	 * @param string $url url to update.
+	 *
+	 * @return bool
+	 */
+	public function og_object_url_has_changed( string $url ):bool {return false;}
+
+	/**
+	 * This detects that the post URL differs from its canonical URL, which will need to be written to the fb-comment.
+	 *
+	 * @return bool returns true/false if request differs from stored canonical URL
+	 */
+	public function comment_embed_url_has_changed():bool {return false;}
+
+	/**
+	 * Updates the URL used in the fb-comment snippet
+	 *
+	 * @param string $url original comment URL.
+	 *
+	 * @return bool returns true/false if successful
+	 */
+	public function update_fb_comment_url( string $url ): bool {return false;}
 }
 
 function change_og_url( string $post_before, string $post_after ) {
