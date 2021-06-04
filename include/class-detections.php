@@ -18,9 +18,12 @@ class Detections {
 	 */
 	public bool $detected_fb;
 
+	private $og_post;
+
+
 	function __construct() {
-		add_filter( 'save_post_post', array( $this, 'detect_new_post' ), 10, 2 );
 		add_action( 'post_updated', array( $this, 'detect_slug_has_changed' ), 10, 3 );
+		add_filter( 'save_post_post', array( $this, 'detect_new_post' ), 10, 3 ); // hook 'save_post_{post_type}' fires after 'post_updated'
 
 	}
 
@@ -46,7 +49,15 @@ class Detections {
 	 * @param int     $post_ID the post object ID.
 	 * @param WP_Post $post the newly created WP_Post object.
 	 */
-	public function detect_new_post( int $post_ID, WP_Post $post ): void {
+	public function detect_new_post( int $post_ID, WP_Post $post, bool $updated ): void {
+		if ( $this->valid_statuses( $post, array( 'publish', 'private', 'draft' ) ) ) {
+			return;
+		}
+
+		if ( $updated ) {
+			return;
+		}
+
 		$this->og_post = new OG_Post( $post );
 		$this->og_post->set_canonical_url( get_permalink( $post ) );
 	}
@@ -59,13 +70,16 @@ class Detections {
 	 * @param WP_Post $post_before the original WP_Post object.
 	 */
 	public function detect_slug_has_changed( int $post_ID, WP_Post $post_after, WP_Post $post_before ): void {
-		if ( ! isset( $this->post ) ) {
-			$this->post = $post_before;
-			// create new OG_Post?
+		if ( $this->valid_statuses( $post_after, array( 'publish', 'private', 'draft' ) ) ) {
+			return;
+		}
+
+		if ( ! isset( $this->og_post ) ) { // ditch this?
+			$this->og_post = new OG_Post( $post_after );
 		}
 
 		// if slugs are not equal
-		if ( $post_before->post_name !== $post_after->post_name ) {
+		if ( ! empty( $post_before->post_name ) && $post_before->post_name !== $post_after->post_name ) {
 			$this->og_post->set_canonical_url( get_permalink( $post_after ) );  // update og_canonical_url
 			change_og_url(get_permalink($post_before), get_permalink($post_after)); // update og_object
 		}
@@ -115,10 +129,19 @@ class Detections {
 	 * @return bool returns true/false if successful
 	 */
 	public function update_fb_comment_url( string $url ): bool {return false;}
+
+	/**
+	 * @param WP_Post $post_after
+	 *
+	 * @return bool
+	 */
+	private function valid_statuses( WP_Post $post_after, array $valid_statuses ): bool {
+		return ! in_array( $post_after->post_status, $valid_statuses, true );
+}
 }
 
 function change_og_url( string $post_before, string $post_after ) {
 	// 1. query og_object
-	$og_object = get_og_object($post_before);
+//	$og_object = get_og_object($post_before);
 
 }

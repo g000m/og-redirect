@@ -21,10 +21,14 @@
  * - valid original URL
  * - valid redirected URL
  */
+namespace GHC;
 
 if (! defined('ABSPATH')) {
     return;
 }
+
+require __DIR__ . "/include/class-detections.php";
+require __DIR__ . "/include/class-og-post.php";
 
 class OG_Redirect
 {
@@ -296,6 +300,8 @@ function activate()
         $updated    = add_post_meta($post->ID, 'og_canonical_url', $post_permalink, true);
     }
 }
-register_activation_hook(__FILE__, 'activate');
+//register_activation_hook(__FILE__, 'activate');
 
-new OG_Redirect();
+//new OG_Redirect();
+
+new Detections();

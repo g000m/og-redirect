@@ -35,13 +35,13 @@ class OG_Post {
 
 	public function set_canonical_url( string $url ) {
 		// check first for existing canonical_url
-		add_post_meta( $this->post->ID, $this->canonical_url_meta_key, $url );
+		add_post_meta( $this->post->ID, $this->canonical_url_meta_key, $url, true );
 	}
 
 	public function scrape( string $url ) {
 		$request = array (
 			'scrape' => 'true',
-			'id' => $url
+			'id'     => $url,
 		);
 		$this->post($request);
 	}
@@ -81,7 +81,7 @@ class OG_Post {
 	}
 }
 
-$og = new OG_Post();
-$og->init_sdk();
-$og->scrape('https://360.devhost.us/2021/05/12/slug-of-three/');
+//$og = new OG_Post();
+//$og->init_sdk();
+//$og->scrape('https://360.devhost.us/2021/05/12/slug-of-three/');
 
