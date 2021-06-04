@@ -9,5 +9,7 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {}
+    "require": {
+        "facebook/graph-sdk": "5.x-dev"
+    }
 }
