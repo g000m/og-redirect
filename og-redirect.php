@@ -23,12 +23,15 @@
  */
 namespace GHC;
 
-if (! defined('ABSPATH')) {
-    return;
+defined( 'ABSPATH' ) || exit;
+
+if ( isset( $_SERVER['REQUEST_URI'] ) && $_SERVER['REQUEST_URI'] === "/favicon.ico" ) {
+	return;
 }
 
-require __DIR__ . "/include/class-detections.php";
-require __DIR__ . "/include/class-og-post.php";
+
+require __DIR__ . '/include/class-detections.php';
+require __DIR__ . '/include/class-og-post.php';
 
 class OG_Redirect
 {

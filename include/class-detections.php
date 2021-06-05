@@ -22,9 +22,19 @@ class Detections {
 
 
 	function __construct() {
+		add_action( 'the_posts', array( $this, 'get_post_object' ) );
+
 		add_action( 'post_updated', array( $this, 'detect_slug_has_changed' ), 10, 3 );
 		add_filter( 'save_post_post', array( $this, 'detect_new_post' ), 10, 3 ); // hook 'save_post_{post_type}' fires after 'post_updated'
 
+	}
+
+	public function get_post_object( $posts ) {
+//		unhook self after first use? how to make sure this is the first/correct one then?
+		if ( ! isset( $this->post ) ) {
+			$this->post = $posts;
+		}
+		return $posts;
 	}
 
 	public function is_fb(): bool {
